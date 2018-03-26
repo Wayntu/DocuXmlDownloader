@@ -1,12 +1,229 @@
-<!DOCTYPE html>
-<html lang="en">
+<!doctype html>   <!-- note: code written with utf8, not ANSI, encoding -->
+<html>
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta http-equiv="X-UA-Compatible" content="ie=edge">
-    <title>DocuXml Downloader</title>
+   <meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
+   <base href="http://docusky.digital.ntu.edu.tw/docusky/"/>
+   <script src="js/jquery.min.js"></script>
+   <script src="js/jquery-ui.min.js"></script>
+   <link href="css/jquery-ui.min.css" rel="stylesheet"></link>
+   <script src="js.ui/docusky.ui.getDbCorpusDocumentsSimpleUI.js"></script>
+   <style type="text/css">
+      span.modifyDocButton { background-color:brown; border:2px brown solid; border-radius:4px; color:white; font-size:smaller; padding:2px; cursor:pointer }
+      div.boxContainer { position:absolute; left: 55px; top: 20px; width:800px; height:auto; 
+                         z-index:1009;
+                         background-color: #CFCFCF; 
+                         border:2px solid #5F5F8F; border-radius:4px; 
+                         box-shadow: 7px 7px 7px 0px grey; 
+                         display:none; }
+      img.clickableIcon:hover { cursor: pointer }
+   </style>
 </head>
 <body>
-    
+   <div id="HeaderBar">
+      <span id="getDocuSkyDocs" style="padding:3px; border:blue 2px solid; background:blue; color:white; border-radius:3px; cursor:pointer;">點我取得文件內容</span>
+   </div>
+   <br/>
+   <div id="divContent" class="divContent">
+   </div>
+   
+   <div id="divModofyDoc" class="boxContainer">
+      <div id="divModifyDocTitleBar" class="titleBar">
+         <table width="100%" style="background-color:navy; color:white; margin:1px;"> 
+            <tr>
+               <td width="95%" align="center">修改文本內容</td>
+               <td align="right">
+                  <img width="16" src="webApi/images/close-button.jpg"
+                       class="clickableIcon" onclick="$('#divModofyDoc').toggle()"/>
+               </td>
+            </tr>
+         </table>
+      </div>
+      <div id="divModifyDocContent" class="contentArea">
+         <textarea id="textareaDocContent" style="width:792px; height:270px"></textarea>
+      </div>
+      <center style="padding:5px; margin:3px;"><button id="modifyDocSubmit">儲存修改</button></center>
+   </div>
+
 </body>
+<script>
+
+var docuSkyObj = null;
+
+const convertDocContent = (docContentXml) => {
+
+}
+const convertMetadata = (docMetadataXml) => {
+
+}
+const convertTimeInfo = (timeInfo) => {
+
+}
+const convertPlaceInfo = (placeInfo) => {
+
+}
+const generateDocuXml = ({
+            corpus,                 // corpus
+            corpusOrder,            // corpus: corpus_order attribute
+            docCompilation,         // compilation
+            docContentXml,          // doc_content
+            docMetadataXml,         // xml_metadata
+            docTitleXml,            // title
+            docFilename,            // document: filename attribute
+            //------------------------------------------------------
+            docSource='',              // doc_scource
+            docType='',                // doctype
+            docXmlFormatSubname='',    // docclass
+            timeInfo='',               // dateOrigStr: time_orig_str, dateDynasty: time_dynasty, 
+            placeInfo='',              // geoLevel1: geo_level1 ... geoLevel3: geo_level3, geoX: geo_longitude, geoY: geo_latitude
+            author='',                 // author
+            docUserTagging='',         // doc_user_tagging
+            docTopicL1='',             // topic
+      }) => {
+            let xmlString = "<document filename='" + docFilename + "'>"
+                  + "<corpus corpusOrder='" + corpusOrder + "'>" + corpus + "</corpus>"
+                  + "<compilation>" + docCompilation + "</compilation>"
+                  + "<doc_content>" + convertDocContent(docContentXml) + "</doc_content>"
+                  + "<xml_metadata>" + convertMetadata(docMetadataXml) + "</xml_metadata"
+                  + "<title>" + docTitleXml + "</title>"
+                  + "<doc_source>" + docSoucre + "</doc_source>"
+                  + "<doctype>" + docType + "</doctype>"
+                  + "<docclass>" + docXmlFormatSubname + "</docclass>"
+                  + convertTimeInfo(timeInfo)
+                  + convertPlaceInfo(placeInfo)
+                  + "<author>" + author + "</author>"
+                  + "<docUserTagging"
+                  + "<topic>" + topic + "</topic>"
+                  + "</document>"
+}
+
+const download = (index) => {
+      const document = docuSkyObj.docList[index]
+      generateDocuXml(document)
+      const xmlString = "<ThdlPrototypeExport>" +
+                        "<documents><document"
+}
+
+function displayDocList() {
+   // 顯示從 DocuSky 取得的文獻集內容
+   //var totalFound = docuSkyObj.totalFound;
+   //var page = docuSkyObj.page;
+   //var pageSize = docuSkyObj.pageSize;
+   //var docList = docuSkyObj.docList;
+   //var spotights = docuSkyObj.spotlights;
+   //var postClssification = docuSkyObj.postClassification;
+   //var features = docuSkyObj.features;
+   //var tagAnalysis = docuSkyObj.tagAnalysis;
+   //var channelBuffer = docuSkyObj.channelBuffer;
+   
+   //alert("Docs: " + docuSkyObj.docList.length);
+   console.log(docuSkyObj)
+   var totalFound = docuSkyObj.totalFound;
+   var page = docuSkyObj.page;                    // current page
+   var pageSize = docuSkyObj.pageSize;
+   
+   var prevAnchor = (page > 1) ? "<a id='anchorGetPrevPage' href='#'>Prev</a>" : '----';
+   var nextAnchor = (page * pageSize > totalFound) ? '----' : "<a id='anchorGetNextPage' href='#'>Next</a>";
+   var s = '';
+   s += "<div style='background-color:#DFDFDF; padding:5px;'>" + 
+        "<table width='100%'>" +
+        "<tr><td colspan='2'>" + docuSkyObj.target + ': ' + docuSkyObj.db + '/' + docuSkyObj.corpus + '</td></tr>' +
+        "<tr><td>TotalFound: " + totalFound + ", PageDocs: " + docuSkyObj.docList.length + ", Page: " + page + "</td>" +
+        "<td align='right'>" + prevAnchor + ' | ' + nextAnchor + "</td></tr>" +
+        "</table>" +
+        "</div>";
+
+   s += "<table width='100%'>";
+   for (var i=0; i<docuSkyObj.docList.length; i++) {
+      var docWithInfo = docuSkyObj.docList[i];
+      var doc = docWithInfo.docInfo;
+      var title = doc.docTitleXml;
+      title = docWithInfo.number + ". " + doc.docFilename + "(" + title + ")";
+      var t = "<tr><td><b>" + title + "</b></td>"
+            // + "    <td align='right' style='padding-top:3px; padding-bottom:8px'><nobr><span class='modifyDocButton' data-chapter='" + i + "'>修改內容</span></nobr></td></tr>"
+            + "    <td align='right' style='padding-top:3px; padding-bottom:8px'><nobr><button class='modifyDoButton' onclick='download(" + i + ")' data-chapter='" + i + "'>下載內容</button></nobr></td></tr>"
+            + "<tr><td id='contentChapter_" + i + "' colspan='2'>" + doc.docContentXml + "</td></tr>";
+      if (i < docuSkyObj.docList.length - 1) t += "<tr><td colspan='2'><hr/></td></tr>";
+      s += t;
+   }
+   s += "</table>";
+   $("#divContent").html(s);
+
+//    $("span.modifyDocButton").click(function() {
+//       var curTop = $(this).offset().top;
+//       var chapter = $(this).data('chapter');         // retrieve the "data-chapter" attribute value
+//       //alert(chapter);
+//       $("#textareaDocContent").val(docuSkyObj.docList[chapter].docInfo.docContentXml);
+//       $("#divModofyDoc").css("top", curTop + 10);
+//       $("#divModofyDoc").show();
+//       $("#modifyDocSubmit").attr('data-chapter', chapter);
+//    });
+   
+   $("#anchorGetPrevPage").click(function(e) {
+      e.preventDefault();
+      var page = docuSkyObj.page - 1;
+      docuSkyObj.getDbCorpusDocumentsGivenPageAndSize(docuSkyObj.target, docuSkyObj.db, docuSkyObj.corpus, page, docuSkyObj.pageSize, e, window.displayDocList);
+   });
+   
+   $("#anchorGetNextPage").click(function(e) {
+      e.preventDefault();
+      var page = docuSkyObj.page + 1;
+      docuSkyObj.getDbCorpusDocumentsGivenPageAndSize(docuSkyObj.target, docuSkyObj.db, docuSkyObj.corpus, page, docuSkyObj.pageSize, e, window.displayDocList);
+   });
+}
+
+   // 2017-07-18
+   $("#divModofyDoc").draggable({
+      containment: 'window',
+      scroll: false, 
+      handle: '#divModifyDocTitleBar' 
+   });
+   
+   $("#modifyDocSubmit").click(function() {
+      var chapter = $(this).data('chapter');         // retrieve the "data-chapter" attribute value
+      var docWithInfo = docuSkyObj.docList[chapter];
+      var docInfo = docWithInfo.docInfo;
+      docInfo.docContentXml = $("#textareaDocContent").val();
+      // update document
+      var db = docuSkyObj.db;
+      var corpus = docuSkyObj.corpus;
+      docuSkyObj.updateDocument(db, corpus, docInfo);
+      // refresh content
+      var tdId = "contentChapter_" + chapter;
+      $("#" + tdId).html(docInfo.docContentXml);
+      $("#divModofyDoc").fadeOut();
+   });
+   
+
+// 必須等所有資源都載入才執行，因此是 $(document).ready()
+// 但實測後，還是有可能在尚未執行 docuskyGetDbCorpusDocumentsSimpleUI 之前執行 ready()
+// 另外，沒有直接使用 window.onload = function() {...} 是因為若有多個 window.onload，會產生
+// 前者被後者覆蓋的問題。jQuery 會處理這樣的狀況：遇到多個 $(window).ready()，會串接起來執行
+
+var setDocuSkyRef = function() {
+   if (docuskyGetDbCorpusDocumentsSimpleUI === null) ;   // widget not ready, please wait for a while
+   else if (docuSkyObj === null) {
+      docuSkyObj = docuskyGetDbCorpusDocumentsSimpleUI;
+      $("#getDocuSkyDocs").click(function(e) {
+         //var target = 'USER';
+         //var db = '', corpus = '';             // empty string: force the simpleUI to display a menu for user selection
+         //var page = 1;
+         //var pageSize = 200;
+         //docuSkyObj.getDbCorpusDocumentsGivenPageAndSize(target, db, corpus, page, pageSize, e, window.displayDocList);
+         var param = { target: 'USER',
+                       db: '',
+                       corpus: '',
+                       page: 1,
+                       pageSize: 200 };
+         docuSkyObj.hideLoadingIcon(true);
+         docuSkyObj.getQueryResultDocuments(param, e, displayDocList);
+      });
+      clearInterval(setDocuSkyRef);
+   }
+}
+
+$(window).ready(function() { 
+   setInterval(setDocuSkyRef, 1000);
+});
+
+</script>
 </html>
