@@ -2,6 +2,7 @@
 <html>
 <head>
    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
+   <script src="js/FileSaver.min.js"></script>
    <base href="http://docusky.digital.ntu.edu.tw/docusky/"/>
    <script src="js/jquery.min.js"></script>
    <script src="js/jquery-ui.min.js"></script>
@@ -49,58 +50,126 @@
 
 var docuSkyObj = null;
 
-const convertDocContent = (docContentXml) => {
-
+const convertContent = (docContentXml) => {
+      const parser = new DOMParser();
+      const xmlDoc = parser.parseFromString(docContentXml, "text/xml");
+      const nodeList = xmlDoc.firstChild.childNodes
+      let xmlString = ''
+      for (let i = 0; i < nodeList.length; i++) {
+            if (nodeList[i].nodeName === 'Paragraph')
+                  xmlString += nodeList[i].outerHTML
+      }
+      return xmlString
 }
 const convertMetadata = (docMetadataXml) => {
-
+      if (docMetadataXml === undefined) return ''
+      const parser = new DOMParser()
+      const xmlDoc = parser.parseFromString(docMetadataXml, "text/xml")
+      let xmlString = ''
+      if (xmlDoc.firstChild.nodeName === "DocMetadata")
+            xmlString = xmlDoc.firstChild.innerHTML
+      return xmlString
 }
-const convertTimeInfo = (timeInfo) => {
-
+const convertTitle = (docTitleXml) => {
+      if (docTitleXml === undefined) return ''
+      const parser = new DOMParser()
+      const xmlDoc = parser.parseFromString(docTitleXml, "text/xml")
+      let xmlString = ''
+      if (xmlDoc.firstChild.nodeName === 'DocTitle')
+            xmlString = xmlDoc.firstChild.innerHTML
+      return xmlString
 }
-const convertPlaceInfo = (placeInfo) => {
-
+const convertTimeInfo = ({
+      dateOrigStr='',
+      dateDynasty='',
+      dateEra='',
+      dateChNormYear='',
+      dateAdDate='',
+      dateAdYear='',
+      timeseqType='',
+      timeseqNumber='',
+      }) => {
+      return "<time_orig_str>" + dateOrigStr + "</time_orig_str>"
+            + "<time_dynasty>" + dateDynasty + "</time_dynasty>"
+            + "<time_era>" + dateEra + "</time_era>"
+            + "<time_norm_year>" + dateChNormYear + "</time_norm_year>"
+            + "<time_ad_date>" + dateAdDate + "</time_ad_date>"
+            + "<time_ad_year>" + dateAdYear + "</time_ad_year>"
+            + "<timeseq_type>" + timeseqType + "</timeseq_type>"
+            + "<timeseq_number>" + timeseqNumber + "</timeseq_number>"
+}
+const convertPlaceInfo = ({
+      geoLevel1='',
+      geoLevel2='',
+      geoLevel3='',
+      geoX='',
+      geoY='',
+      }) => {
+      return "<geo_level1>" + geoLevel1 + "</geo_level1>"
+            + "<geo_level2>" + geoLevel2 + "</geo_level2>"
+            + "<geo_level3>" + geoLevel3 + "</geo_level3>"
+            + "<geo_longitude>" + geoX + "</geo_longitude>"
+            + "<geo_latitude>" + geoY + "</geo_latitude>"
 }
 const generateDocuXml = ({
+            number,
             corpus,                 // corpus
             corpusOrder,            // corpus: corpus_order attribute
-            docCompilation,         // compilation
             docContentXml,          // doc_content
             docMetadataXml,         // xml_metadata
             docTitleXml,            // title
             docFilename,            // document: filename attribute
+            timeInfo,               // dateOrigStr: time_orig_str, dateDynasty: time_dynasty, 
+            placeInfo,              // geoLevel1: geo_level1 ... geoLevel3: geo_level3, geoX: geo_longitude, geoY: geo_latitude
             //------------------------------------------------------
+            docCompilation='',         // compilation
             docSource='',              // doc_scource
             docType='',                // doctype
             docXmlFormatSubname='',    // docclass
-            timeInfo='',               // dateOrigStr: time_orig_str, dateDynasty: time_dynasty, 
-            placeInfo='',              // geoLevel1: geo_level1 ... geoLevel3: geo_level3, geoX: geo_longitude, geoY: geo_latitude
             author='',                 // author
             docUserTagging='',         // doc_user_tagging
             docTopicL1='',             // topic
       }) => {
-            let xmlString = "<document filename='" + docFilename + "'>"
+            const parser = new DOMParser()
+            let xmlString = "<document filename='" + docFilename + "' number='" + number + "'>"
                   + "<corpus corpusOrder='" + corpusOrder + "'>" + corpus + "</corpus>"
                   + "<compilation>" + docCompilation + "</compilation>"
-                  + "<doc_content>" + convertDocContent(docContentXml) + "</doc_content>"
-                  + "<xml_metadata>" + convertMetadata(docMetadataXml) + "</xml_metadata"
-                  + "<title>" + docTitleXml + "</title>"
-                  + "<doc_source>" + docSoucre + "</doc_source>"
+                  + "<doc_content>" + convertContent(docContentXml) + "</doc_content>"
+                  + "<xml_metadata>" + convertMetadata(docMetadataXml) + "</xml_metadata>"
+                  + "<title>" + convertTitle(docTitleXml) + "</title>"
+                  + "<doc_source>" + docSource + "</doc_source>"
                   + "<doctype>" + docType + "</doctype>"
                   + "<docclass>" + docXmlFormatSubname + "</docclass>"
                   + convertTimeInfo(timeInfo)
                   + convertPlaceInfo(placeInfo)
                   + "<author>" + author + "</author>"
-                  + "<docUserTagging"
-                  + "<topic>" + topic + "</topic>"
+                  + "<doc_user_tagging>" + docUserTagging + "</doc_user_tagging>"
+                  + "<topic>" + docTopicL1 + "</topic>"
                   + "</document>"
+            const xmlDoc = parser.parseFromString(xmlString, "text/xml")
+            console.log(xmlDoc)
+            return xmlString
 }
 
 const download = (index) => {
-      const document = docuSkyObj.docList[index]
-      generateDocuXml(document)
-      const xmlString = "<ThdlPrototypeExport>" +
-                        "<documents><document"
+      const document = docuSkyObj.docList[index].docInfo
+      const number = docuSkyObj.docList[index].number
+      const db = docuSkyObj.db
+      const corpus = docuSkyObj.corpus
+      const documentXml = generateDocuXml({...document, number})
+      const xmlString = "<ThdlPrototypeExport>"
+                        + "<db>" + db + "</db>"
+                        + "<corpus name='" + corpus + "'>"
+                        + "</corpus>"
+                        + "<documents>"
+                        + documentXml
+                        + "</documents></ThdlPrototypeExport>"
+      const parser = new DOMParser()
+      const result = parser.parseFromString(xmlString, "text/xml")
+      const blob = new Blob([xmlString])
+      //const dateStr = (new Date()).yyyymmdd()
+      const filename =  db + '-' + corpus + '.xml'
+      //saveAs(blob, filename)
 }
 
 function displayDocList() {
