@@ -3,11 +3,13 @@
 <head>
    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
    <script src="js/FileSaver.min.js"></script>
-   <base href="http://docusky.digital.ntu.edu.tw/docusky/"/>
+   <script src="js/DocuSkyExport.js"></script>
+   <script src="js/DocuSkyImport.js"></script>
    <script src="js/jquery.min.js"></script>
    <script src="js/jquery-ui.min.js"></script>
-   <link href="css/jquery-ui.min.css" rel="stylesheet"></link>
-   <script src="js.ui/docusky.ui.getDbCorpusDocumentsSimpleUI.js"></script>
+   <link rel="stylesheet" href="css/jquery-ui.min.css" rel="stylesheet"></link>
+   <script src="http://docusky.digital.ntu.edu.tw/docusky/js.ui/docusky.ui.getDbCorpusDocumentsSimpleUI.js"></script>
+   <base href="http://docusky.digital.ntu.edu.tw/docusky/"/>
    <style type="text/css">
       span.modifyDocButton { background-color:brown; border:2px brown solid; border-radius:4px; color:white; font-size:smaller; padding:2px; cursor:pointer }
       div.boxContainer { position:absolute; left: 55px; top: 20px; width:800px; height:auto; 
@@ -24,8 +26,12 @@
       <span id="getDocuSkyDocs" style="padding:3px; border:blue 2px solid; background:blue; color:white; border-radius:3px; cursor:pointer;">點我取得文件內容</span>
    </div>
    <br/>
-   <div id="divContent" class="divContent">
-   </div>
+   <button id='listBoxButton' onclick='openListBox()'>顯示列表</button>
+   <button id='downloadButton' onclick='download()'>下載DocuXml</button>
+   <input type='file' id='uploadedFile' multiple='multiple' accept='.xml'>
+   <button id="uploadButton" onclick='upload()'>上傳DocuXml</button>
+   <div id='listBox' style="display: none;"></div>
+   <div id="divContent" class="divContent"></div>
    
    <div id="divModofyDoc" class="boxContainer">
       <div id="divModifyDocTitleBar" class="titleBar">
@@ -44,134 +50,70 @@
       </div>
       <center style="padding:5px; margin:3px;"><button id="modifyDocSubmit">儲存修改</button></center>
    </div>
-
 </body>
 <script>
-
+let documents = {}
 var docuSkyObj = null;
+const initialize = () => { //  2018-04-01 wayne
+   documents = {}
+   updateList()
+   closeListBox()
+}
+const upload = () => {
+      [].map.call(document.getElementById("uploadedFile").files, function(f, index){
+            const r = new FileReader();
+            r.onload = (e) => {
+                  const xmlString  = e.target.result
+                  const parser = new DOMParser()
+                  const xmlDoc = parser.parseFromString(xmlString, 'text/xml')
+                  const { db, corpus, docList } = importDocuXml(xmlDoc)
+                  docList.map((doc) => {
+                        docuSkyObj.updateDocument(db, corpus, doc.docInfo)
+                  })
+            }
+            r.readAsText(f)    
+      })
 
-const convertContent = (docContentXml) => {
-      const parser = new DOMParser();
-      const xmlDoc = parser.parseFromString(docContentXml, "text/xml");
-      const nodeList = xmlDoc.firstChild.childNodes
-      let xmlString = ''
-      for (let i = 0; i < nodeList.length; i++) {
-            if (nodeList[i].nodeName === 'Paragraph')
-                  xmlString += nodeList[i].outerHTML
-      }
-      return xmlString
 }
-const convertMetadata = (docMetadataXml) => {
-      if (docMetadataXml === undefined) return ''
-      const parser = new DOMParser()
-      const xmlDoc = parser.parseFromString(docMetadataXml, "text/xml")
-      let xmlString = ''
-      if (xmlDoc.firstChild.nodeName === "DocMetadata")
-            xmlString = xmlDoc.firstChild.innerHTML
-      return xmlString
-}
-const convertTitle = (docTitleXml) => {
-      if (docTitleXml === undefined) return ''
-      const parser = new DOMParser()
-      const xmlDoc = parser.parseFromString(docTitleXml, "text/xml")
-      let xmlString = ''
-      if (xmlDoc.firstChild.nodeName === 'DocTitle')
-            xmlString = xmlDoc.firstChild.innerHTML
-      return xmlString
-}
-const convertTimeInfo = ({
-      dateOrigStr='',
-      dateDynasty='',
-      dateEra='',
-      dateChNormYear='',
-      dateAdDate='',
-      dateAdYear='',
-      timeseqType='',
-      timeseqNumber='',
-      }) => {
-      return "<time_orig_str>" + dateOrigStr + "</time_orig_str>"
-            + "<time_dynasty>" + dateDynasty + "</time_dynasty>"
-            + "<time_era>" + dateEra + "</time_era>"
-            + "<time_norm_year>" + dateChNormYear + "</time_norm_year>"
-            + "<time_ad_date>" + dateAdDate + "</time_ad_date>"
-            + "<time_ad_year>" + dateAdYear + "</time_ad_year>"
-            + "<timeseq_type>" + timeseqType + "</timeseq_type>"
-            + "<timeseq_number>" + timeseqNumber + "</timeseq_number>"
-}
-const convertPlaceInfo = ({
-      geoLevel1='',
-      geoLevel2='',
-      geoLevel3='',
-      geoX='',
-      geoY='',
-      }) => {
-      return "<geo_level1>" + geoLevel1 + "</geo_level1>"
-            + "<geo_level2>" + geoLevel2 + "</geo_level2>"
-            + "<geo_level3>" + geoLevel3 + "</geo_level3>"
-            + "<geo_longitude>" + geoX + "</geo_longitude>"
-            + "<geo_latitude>" + geoY + "</geo_latitude>"
-}
-const generateDocuXml = ({
-            number,
-            corpus,                 // corpus
-            corpusOrder,            // corpus: corpus_order attribute
-            docContentXml,          // doc_content
-            docMetadataXml,         // xml_metadata
-            docTitleXml,            // title
-            docFilename,            // document: filename attribute
-            timeInfo,               // dateOrigStr: time_orig_str, dateDynasty: time_dynasty, 
-            placeInfo,              // geoLevel1: geo_level1 ... geoLevel3: geo_level3, geoX: geo_longitude, geoY: geo_latitude
-            //------------------------------------------------------
-            docCompilation='',         // compilation
-            docSource='',              // doc_scource
-            docType='',                // doctype
-            docXmlFormatSubname='',    // docclass
-            author='',                 // author
-            docUserTagging='',         // doc_user_tagging
-            docTopicL1='',             // topic
-      }) => {
-            const parser = new DOMParser()
-            let xmlString = "<document filename='" + docFilename + "' number='" + number + "'>"
-                  + "<corpus corpusOrder='" + corpusOrder + "'>" + corpus + "</corpus>"
-                  + "<compilation>" + docCompilation + "</compilation>"
-                  + "<doc_content>" + convertContent(docContentXml) + "</doc_content>"
-                  + "<xml_metadata>" + convertMetadata(docMetadataXml) + "</xml_metadata>"
-                  + "<title>" + convertTitle(docTitleXml) + "</title>"
-                  + "<doc_source>" + docSource + "</doc_source>"
-                  + "<doctype>" + docType + "</doctype>"
-                  + "<docclass>" + docXmlFormatSubname + "</docclass>"
-                  + convertTimeInfo(timeInfo)
-                  + convertPlaceInfo(placeInfo)
-                  + "<author>" + author + "</author>"
-                  + "<doc_user_tagging>" + docUserTagging + "</doc_user_tagging>"
-                  + "<topic>" + docTopicL1 + "</topic>"
-                  + "</document>"
-            const xmlDoc = parser.parseFromString(xmlString, "text/xml")
-            console.log(xmlDoc)
-            return xmlString
-}
-
-const download = (index) => {
-      const document = docuSkyObj.docList[index].docInfo
-      const number = docuSkyObj.docList[index].number
+const download = () => {
+      for (let i in documents) { if (i === undefined) return }
       const db = docuSkyObj.db
       const corpus = docuSkyObj.corpus
-      const documentXml = generateDocuXml({...document, number})
-      const xmlString = "<ThdlPrototypeExport>"
-                        + "<db>" + db + "</db>"
-                        + "<corpus name='" + corpus + "'>"
-                        + "</corpus>"
-                        + "<documents>"
-                        + documentXml
-                        + "</documents></ThdlPrototypeExport>"
-      const parser = new DOMParser()
-      const result = parser.parseFromString(xmlString, "text/xml")
+      const xmlString = exportDocuXml({documents, db, corpus})
       const blob = new Blob([xmlString])
       //const dateStr = (new Date()).yyyymmdd()
       const filename =  db + '-' + corpus + '.xml'
-      //saveAs(blob, filename)
+      saveAs(blob, filename)
 }
-
+const addDocument = (index) => {
+      const document = docuSkyObj.docList[index].docInfo
+      const number = docuSkyObj.docList[index].number
+      documents[number] = document
+      updateList()
+}
+const removeDocument = (index) => {
+      const number = docuSkyObj.docList[index].number
+      delete documents[number]
+      updateList()
+}
+const updateList = () => {
+      let html = '<ul>'
+      for (let key in documents) {
+            html += "<li>Document #" + key + "</li>"
+      }
+      html += '</ul>'
+      $('#listBox').html(html)
+}
+const openListBox = () => {
+      $('#listBox').css('display', 'inline')
+      $('#listBoxButton').attr('onclick', 'closeListBox()')
+      $('#listBoxButton').html("收起列表")
+}
+const closeListBox = () => {
+      $('#listBox').css('display', 'none');
+      $('#listBoxButton').attr('onclick', 'openListBox()')
+      $('#listBoxButton').html("顯示列表")
+}
 function displayDocList() {
    // 顯示從 DocuSky 取得的文獻集內容
    //var totalFound = docuSkyObj.totalFound;
@@ -186,6 +128,7 @@ function displayDocList() {
    
    //alert("Docs: " + docuSkyObj.docList.length);
    console.log(docuSkyObj)
+   initialize()
    var totalFound = docuSkyObj.totalFound;
    var page = docuSkyObj.page;                    // current page
    var pageSize = docuSkyObj.pageSize;
@@ -200,7 +143,6 @@ function displayDocList() {
         "<td align='right'>" + prevAnchor + ' | ' + nextAnchor + "</td></tr>" +
         "</table>" +
         "</div>";
-
    s += "<table width='100%'>";
    for (var i=0; i<docuSkyObj.docList.length; i++) {
       var docWithInfo = docuSkyObj.docList[i];
@@ -209,7 +151,9 @@ function displayDocList() {
       title = docWithInfo.number + ". " + doc.docFilename + "(" + title + ")";
       var t = "<tr><td><b>" + title + "</b></td>"
             // + "    <td align='right' style='padding-top:3px; padding-bottom:8px'><nobr><span class='modifyDocButton' data-chapter='" + i + "'>修改內容</span></nobr></td></tr>"
-            + "    <td align='right' style='padding-top:3px; padding-bottom:8px'><nobr><button class='modifyDoButton' onclick='download(" + i + ")' data-chapter='" + i + "'>下載內容</button></nobr></td></tr>"
+            + "<td align='right' style='padding-top:3px; padding-bottom:8px'><nobr></div>"
+            + "<button class='modifyDoButton' onclick='removeDocument(" + i + ")' data-chaper='" + i + "'>移除此文獻</button>"
+            + "<button class='modifyDoButton' onclick='addDocument(" + i + ")' data-chapter='" + i + "'>加入此文獻</button></nobr></td></tr>"
             + "<tr><td id='contentChapter_" + i + "' colspan='2'>" + doc.docContentXml + "</td></tr>";
       if (i < docuSkyObj.docList.length - 1) t += "<tr><td colspan='2'><hr/></td></tr>";
       s += t;
