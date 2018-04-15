@@ -70,7 +70,6 @@ const upload = () => {
                   const xmlDoc = parser.parseFromString(xmlString, 'text/xml')
                   const docList = importer.generateDocInfo(xmlDoc)
                   docList.map((doc) => {
-                        console.log(doc)
                         docuSkyObj.updateDocument(doc.db, doc.corpus, doc.docInfo)
                   })
             }

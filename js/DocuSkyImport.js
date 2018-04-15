@@ -1,7 +1,6 @@
 class DocuSkyImporter {
     generateDocInfo(xmlDoc) {
         const root = xmlDoc.firstChild.childNodes   // <ThdlPrototype>
-        console.log(root)
         const documents = root[1].childNodes
         const docList = []
 
@@ -21,7 +20,7 @@ class DocuSkyImporter {
     }
     transform(document) {
         const filename = document.attributes['filename'].value
-        const number = (document.attributes['number'])? document.attributes['number'].value : 0
+        const number = (document.attributes['number'])? document.attributes['number'].value : '0'
         const docInfo = {}
         const timeInfo = {}
         const placeInfo = {}
@@ -107,10 +106,13 @@ class DocuSkyImporter {
                     docInfo['docId'] = childNode.innerHTML
                     break;
                 case "doc_time_created":
-                    docInfo['doc_time_created'] = childNode.innerHTML
+                    docInfo['docTimeCreated'] = childNode.innerHTML
                     break;
                 case "xml_format_name":
                     docInfo['xmlFormatName'] = childNode.innerHTML
+                    break;
+                case "src_filename":
+                    docInfo['srcFilename'] = childNode.innerHTML
                     break;
                 case "db":
                     docInfo['db'] = childNode.innerHTML
@@ -127,7 +129,12 @@ class DocuSkyImporter {
         docInfo['timeInfo'] = timeInfo
         docInfo['placeInfo'] = placeInfo 
         const {db, corpus} = docInfo
-        delete docInfo['db']
+        delete docInfo['db']                // should not upload
+        delete docInfo['docTopicL1Order']   // docusky upload error 4
+        delete docInfo['docUserTagging']    // docusky upload error 4
+        for (let key in docInfo) {  // 空欄位
+            if (docInfo[key].length == 0) delete docInfo[key]
+        }
         return { db, corpus , docInfo }
     }
 }

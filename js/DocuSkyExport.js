@@ -154,6 +154,7 @@ class DocuSkyExporter {
             docId='',
             docTimeCreated='',
             xmlFormatName='',
+            srcFilename='',
             // extraMetadata='',    // DocuSky不支援?
       }) {
             const parser = new DOMParser()
@@ -174,6 +175,7 @@ class DocuSkyExporter {
                   + "<doc_id>" + docId + "</doc_id>"
                   + "<doc_time_created>" + docTimeCreated + "</doc_time_created>"
                   + "<xml_format_name>" + xmlFormatName + "</xml_format_name>"
+                  + "<src_filename>" + srcFilename + "</src_filename>"
                   + "<db>" + this.db + "</db>"
                   // + "<extra_metadata>" + extraMetadata + "</extra_metadata>"
                   + "</document>"
