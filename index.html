@@ -27,6 +27,7 @@
    </div>
    <br/>
    <button id='listBoxButton' onclick='openListBox()'>顯示列表</button>
+   <button id='removeButton' onclick='removeListBox()'>清空列表</button>
    <button id='downloadButton' onclick='download()'>下載DocuXml</button>
    <input type='file' id='uploadedFile' multiple='multiple' accept='.xml'>
    <button id="uploadButton" onclick='upload()'>上傳DocuXml</button>
@@ -65,10 +66,12 @@ const upload = () => {
             r.onload = (e) => {
                   const xmlString  = e.target.result
                   const parser = new DOMParser()
+                  const importer = new DocuSkyImporter()
                   const xmlDoc = parser.parseFromString(xmlString, 'text/xml')
-                  const { db, corpus, docList } = importDocuXml(xmlDoc)
+                  const docList = importer.generateDocInfo(xmlDoc)
                   docList.map((doc) => {
-                        docuSkyObj.updateDocument(db, corpus, doc.docInfo)
+                        console.log(doc)
+                        docuSkyObj.updateDocument(doc.db, doc.corpus, doc.docInfo)
                   })
             }
             r.readAsText(f)    
@@ -79,7 +82,8 @@ const download = () => {
       for (let i in documents) { if (i === undefined) return }
       const db = docuSkyObj.db
       const corpus = docuSkyObj.corpus
-      const xmlString = exportDocuXml({documents, db, corpus})
+      const exporter = new DocuSkyExporter()
+      const xmlString = exporter.generateDocuXml({documents, db, corpus})
       const blob = new Blob([xmlString])
       //const dateStr = (new Date()).yyyymmdd()
       const filename =  db + '-' + corpus + '.xml'
@@ -96,6 +100,10 @@ const removeDocument = (index) => {
       delete documents[number]
       updateList()
 }
+const removeAllDocument = () => {
+      documents = {}
+      updateList()
+}
 const updateList = () => {
       let html = '<ul>'
       for (let key in documents) {
@@ -108,6 +116,9 @@ const openListBox = () => {
       $('#listBox').css('display', 'inline')
       $('#listBoxButton').attr('onclick', 'closeListBox()')
       $('#listBoxButton').html("收起列表")
+}
+const removeListBox = () => {
+      removeAllDocument()
 }
 const closeListBox = () => {
       $('#listBox').css('display', 'none');
