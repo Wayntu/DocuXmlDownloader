@@ -26,6 +26,10 @@
       <span id="getDocuSkyDocs" style="padding:3px; border:blue 2px solid; background:blue; color:white; border-radius:3px; cursor:pointer;">點我取得文件內容</span>
    </div>
    <br/>
+   <div>    
+         欲下載文獻集數量：<span id="docLength">0</span>
+   </div>
+   <br/>
    <button id='listBoxButton' onclick='openListBox()'>顯示列表</button>
    <button id='removeButton' onclick='removeListBox()'>清空列表</button>
    <button id='downloadButton' onclick='download()'>下載DocuXml</button>
@@ -54,6 +58,7 @@
 </body>
 <script>
 let documents = {}
+let docIndices = {}     // 2018-04-16 wayne 用來存放已勾選文件index
 var docuSkyObj = null;
 const initialize = () => { //  2018-04-01 wayne
    documents = {}
@@ -92,15 +97,22 @@ const addDocument = (index) => {
       const document = docuSkyObj.docList[index].docInfo
       const number = docuSkyObj.docList[index].number
       documents[number] = document
+      docIndices[index] = index
+      $('tr b')[index].style['backgroundColor'] = 'yellow'  // highlight
       updateList()
 }
 const removeDocument = (index) => {
       const number = docuSkyObj.docList[index].number
       delete documents[number]
+      delete docIndices[index]
+      $('tr b')[index].style['backgroundColor'] = 'white'   
       updateList()
 }
 const removeAllDocument = () => {
+      for(let index in docIndices)
+            $('tr b')[index].style['backgroundColor'] = 'white'   
       documents = {}
+      docIndices = {}
       updateList()
 }
 const updateList = () => {
@@ -110,6 +122,7 @@ const updateList = () => {
       }
       html += '</ul>'
       $('#listBox').html(html)
+      $('#docLength').html(Object.keys(docIndices).length)
 }
 const openListBox = () => {
       $('#listBox').css('display', 'inline')
