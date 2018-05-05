@@ -13,7 +13,9 @@ class DocuSkyExporter {
             this.corpus = corpus
             for (let number in documents) {
                   let document = documents[number]
-                  documentXml += this.parseDocument({...document, number})
+                  //documentXml += this.parseDocument({...document, number})
+                  let d = document; d.number = number;
+                  documentXml += this.parseDocument(d);
             }
             const xmlString = "<ThdlPrototypeExport>"
                               + "<corpus name='*'>"
