@@ -8,8 +8,8 @@
    <script src="js/jquery.min.js"></script>
    <script src="js/jquery-ui.min.js"></script>
    <link rel="stylesheet" href="css/jquery-ui.min.css" rel="stylesheet"></link>
-   <script src="../../js.ui/docusky.ui.getDbCorpusDocumentsSimpleUI.js"></script>
-   <base href="../.."/>      <!-- http://docusky.digital.ntu.edu.tw/docusky/ -->
+   <script src="http://docusky.digital.ntu.edu.tw/docusky/js.ui/docusky.ui.getDbCorpusDocumentsSimpleUI.js"></script>
+   <base href="http://docusky.digital.ntu.edu.tw/docusky/"/>      <!-- http://docusky.digital.ntu.edu.tw/docusky/ -->
    <style type="text/css">
       span.modifyDocButton { background-color:brown; border:2px brown solid; border-radius:4px; color:white; font-size:smaller; padding:2px; cursor:pointer }
       div.boxContainer { position:absolute; left: 55px; top: 20px; width:800px; height:auto; 
@@ -35,6 +35,15 @@
    <button id='downloadButton' onclick='download()'>下載DocuXml</button>
    <input type='file' id='uploadedFile' multiple='multiple' accept='.xml'>
    <button id="uploadButton" onclick='upload()'>上傳DocuXml</button>
+   
+   <br/><br/>
+   <span　id='rangeSelection' style="display: none;">
+         範圍選取： Document Id 從
+         <input type="number" id="startIndex" size="2px">
+         ~
+         <input type="number" id="endIndex" size="2px">
+         <button id='rangeButton'>選取</button>
+   </span>
    <div id='listBox' style="display: none;"></div>
    <div id="divContent" class="divContent"></div>
    
@@ -64,6 +73,28 @@ const initialize = () => { //  2018-04-01 wayne
    documents = {}
    updateList()
    closeListBox()
+   // 2018-05-05 wayne range selection feature
+   const docNum = docuSkyObj.docList.length
+   $('#startIndex').val(0)
+   $('#endIndex').val(docNum - 1)
+   $('#ragneButton').click(function () {
+         const start = $('#stratIndex').val()
+         const end = $('#endIndex').val()
+         try {
+               if (start > end) throw '起始引值錯誤'
+               else if ( end >= docNum) throw '結尾索引值錯誤'
+               else if (start < 0 || end < 0) throw '索引值須為正值'
+               for (let i = start; i <= end; i++) {
+                     addDcoument(i)
+               }
+         } catch(err) {
+               alert(err)
+         }
+         if (end < start) {
+
+         }
+   })
+
 }
 const upload = () => {
       [].map.call(document.getElementById("uploadedFile").files, function(f, index){
