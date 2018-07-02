@@ -24,6 +24,7 @@
 <body>
    <div id="HeaderBar">
       <span id="getDocuSkyDocs" style="padding:3px; border:blue 2px solid; background:blue; color:white; border-radius:3px; cursor:pointer;">點我取得文件內容</span>
+      欲載入單頁文本數量：<input type='number' id='userDefinedPageSize' value=200></input>
    </div>
    <br/>
    <div>    
@@ -273,11 +274,15 @@ var setDocuSkyRef = function() {
          //var page = 1;
          //var pageSize = 200;
          //docuSkyObj.getDbCorpusDocumentsGivenPageAndSize(target, db, corpus, page, pageSize, e, window.displayDocList);
+         let size=200
+         if ($('#userDefinedPageSize').val() !== undefined) {
+               size = parseInt($('#userDefinedPageSize').val())
+         }
          var param = { target: 'USER',
                        db: '',
                        corpus: '',
                        page: 1,
-                       pageSize: 200 };
+                       pageSize: size };
          docuSkyObj.hideLoadingIcon(true);
          docuSkyObj.getQueryResultDocuments(param, e, displayDocList);
       });
