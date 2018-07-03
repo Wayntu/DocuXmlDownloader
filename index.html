@@ -24,6 +24,7 @@
 <body>
    <div id="HeaderBar">
       <span id="getDocuSkyDocs" style="padding:3px; border:blue 2px solid; background:blue; color:white; border-radius:3px; cursor:pointer;">點我取得文件內容</span>
+      欲載入頁面編號：<input type='number' id='userDefinedPage' value=1></input>
       欲載入單頁文本數量：<input type='number' id='userDefinedPageSize' value=200></input>
    </div>
    <br/>
@@ -33,7 +34,8 @@
    <br/>
    <button id='listBoxButton' onclick='openListBox()'>顯示列表</button>
    <button id='removeButton' onclick='removeListBox()'>清空列表</button>
-   <button id='downloadButton' onclick='download()'>下載DocuXml</button>
+   <button id='selectedDownloadBtn' onclick='downloadSelected()'>下載選取DocuXml</button>
+   <buton id='totalDonwloadBtn' onclick='downloadTotal()'>下載全文DocuXml</buton>
    <input type='file' id='uploadedFile' multiple='multiple' accept='.xml'>
    <button id="uploadButton" onclick='upload()'>上傳DocuXml</button>
    <br/><br/>
@@ -111,7 +113,7 @@ const upload = () => {
       })
 
 }
-const download = () => {
+const downloadSelected = () => {
       for (let i in documents) { if (i === undefined) return }
       const db = docuSkyObj.db
       const corpus = docuSkyObj.corpus
@@ -121,6 +123,9 @@ const download = () => {
       //const dateStr = (new Date()).yyyymmdd()
       const filename =  db + '-' + corpus + '.xml'
       saveAs(blob, filename)
+}
+const downloadTotal = () => {
+
 }
 const addDocument = (index) => {
       const document = docuSkyObj.docList[index].docInfo
@@ -274,15 +279,14 @@ var setDocuSkyRef = function() {
          //var page = 1;
          //var pageSize = 200;
          //docuSkyObj.getDbCorpusDocumentsGivenPageAndSize(target, db, corpus, page, pageSize, e, window.displayDocList);
-         let size=200
-         if ($('#userDefinedPageSize').val() !== undefined) {
-               size = parseInt($('#userDefinedPageSize').val())
-         }
+         let _page = ($('#userDefinedPage').val() === undefined)? 1 : $('#userDefinedPage').val()
+         let _pageSize = ($('#userDefinedPageSize').val() === undefined)? 200 : $('#userDefinedPageSize').val()
+
          var param = { target: 'USER',
                        db: '',
                        corpus: '',
-                       page: 1,
-                       pageSize: size };
+                       page: _page,
+                       pageSize: _pageSize };
          docuSkyObj.hideLoadingIcon(true);
          docuSkyObj.getQueryResultDocuments(param, e, displayDocList);
       });
