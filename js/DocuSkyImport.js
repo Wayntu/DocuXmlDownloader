@@ -3,7 +3,6 @@ class DocuSkyImporter {
         const root = xmlDoc.firstChild.childNodes   // <ThdlPrototype>
         const documents = root[1].childNodes
         const docList = []
-
         documents.forEach((document) => {
             docList.push(this.transform(document))
         })

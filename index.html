@@ -35,7 +35,7 @@
    <button id='listBoxButton' onclick='openListBox()'>顯示列表</button>
    <button id='removeButton' onclick='removeListBox()'>清空列表</button>
    <button id='selectedDownloadBtn' onclick='downloadSelected()'>下載選取DocuXml</button>
-   <buton id='totalDonwloadBtn' onclick='downloadTotal()'>下載全文DocuXml</buton>
+   <!-- <buton id='totalDonwloadBtn' onclick='downloadTotal()'>下載全文DocuXml</buton> -->
    <input type='file' id='uploadedFile' multiple='multiple' accept='.xml'>
    <button id="uploadButton" onclick='upload()'>上傳DocuXml</button>
    <br/><br/>
@@ -73,6 +73,7 @@ let docIndices = {}     // 2018-04-16 wayne 用來存放已勾選文件index
 var docuSkyObj = null;
 const initialize = () => { //  2018-04-01 wayne
    documents = {}
+   docIndices = {}
    updateList()
    closeListBox()
    // 2018-05-05 wayne range selection feature

@@ -35,19 +35,38 @@ class DocuSkyExporter {
             return result
       }
       parseUserDefinedTag(content) {
-            this.UserDefinedTag = ''
-            const tagName = {}
-            const nodeList = content.firstChild.firstChild.childNodes
-            for (let i = 0; i　< nodeList.length; i++) {
-                  let node = nodeList[i]
-                  if (node.nodeName.substr(0,4) == 'Udef') {    // nodename: Udef_XXX
-                        tagName[node.nodeName] = node.nodeName
-                        if (!(node.nodeName in this.featureAnalysis)) this.featureAnalysis[node.nodeName] = node.nodeName
-                  }
+            try {
+               this.UserDefinedTag = ''
+               const tagName = {}
+               const nodeList = content.firstChild.firstChild.childNodes
+               for (let i = 0; i　< nodeList.length; i++) {
+                     let node = nodeList[i]
+                     if (node.nodeName.substr(0,4) == 'Udef') {    // nodename: Udef_XXX
+                           tagName[node.nodeName] = node.nodeName
+                           if (!(node.nodeName in this.featureAnalysis)) this.featureAnalysis[node.nodeName] = node.nodeName
+                     }
+               }
+               for (let key in tagName) {
+                     this.UserDefinedTag += "<tag default_sub_category='-' default_category='" + key + "' type='contentTagging'>" + key + "</tag>"
+               }
+            } catch (e) {
+               console.log(e)
             }
-            for (let key in tagName) {
-                  this.UserDefinedTag += "<tag default_sub_category='-' default_category='" + key + "' type='contentTagging'>" + key + "</tag>"
+            
+      }
+      replaceAngleBrackets(node) { // 2018-09-29 Escape `Angle Brackets`
+         let nodeList = node.childeNodes
+         if (nodeList) {
+            for (let i = 0; i < nodeList.length; i++) {
+               replaceAngleBrackets(nodeList[i])
             }
+         } else {
+            let tmp = node.innerHTML
+            tmp = tmp.replace(new RegExp('>', 'g'), '&gt;')
+            tmp = tmp.replace(new RegExp('<', 'g'), '&lt;')
+            node.innerHTML = tmp
+         }
+         return node
       }
       convertContent(docContentXml) {
             const parser = new DOMParser();
@@ -56,9 +75,15 @@ class DocuSkyExporter {
             const nodeList = xmlDoc.firstChild.childNodes
             let xmlString = ''
             for (let i = 0; i < nodeList.length; i++) {
-                  if (nodeList[i].nodeName === 'Paragraph')
-                        xmlString += nodeList[i].outerHTML
+                  if (nodeList[i].nodeName === 'Paragraph') {
+                        xmlString += this.replaceAngleBrackets(nodeList[i]).outerHTML
+                  } else if (nodeList[i].nodeType == 3) { // 2018-09-18 古地契的 DocuXML 並沒有 Paragraph
+                        xmlString += nodeList[i].data
+                  } else if (nodeList[i].nodeType == 1) {
+                        xmlString += this.replaceAngleBrackets(nodeList[i]).outerHTML
+                  }
             }
+            
             return xmlString
       }
       convertMetadata(docMetadataXml) {
