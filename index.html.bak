@@ -62,7 +62,7 @@
    </div>
    <br/>
    <div>
-         欲下載文獻集數量：<span id="selectedDocListLength">0</span>
+         欲下載文獻集數量：<span id="docLength">0</span>
    </div>
    <br/>
    <button id='listBoxButton' onclick='openListBox()'>顯示列表</button>
@@ -106,19 +106,35 @@
    </div>
 </body>
 <script>
-let selectedDocList = {}
+let documents = {}
+let docIndices = {}     // 2018-04-16 wayne 用來存放已勾選文件index
 var docuSkyObj = null;
 var docuSkyDbObj = null;
 const initialize = () => { //  2018-04-01 wayne
-   selectedDocList = {}
+   documents = {}
+   docIndices = {}
    updateList()
    closeListBox()
    // 2018-05-05 wayne range selection feature
+   const docNum = docuSkyObj.docList.length
    $('#rangeSelection').css('display', 'inline')
    $('#startIndex').val(1)
-   $('#endIndex').val(docuSkyObj.docList.length) // 2019-04-22 Wayne: 現在頁面顯示的文件數量
-   $('#rangeButton').click((e) => addRangeDocument(e))
-   displayDocList()
+   $('#endIndex').val(docNum)
+   $('#rangeButton').click(function () {
+         const start = $('#startIndex').val() - 1
+         const end = $('#endIndex').val() - 1
+         try {
+               if (start > end) throw '起始編號需大於結尾編號'
+               else if ( end >= docNum) throw '結尾編號錯誤'
+               else if (start < 0 || end < 0) throw '編號須大於 0'
+               for (let i = start; i <= end; i++) {
+                     addDocument(i)
+               }
+         } catch(err) {
+               alert(err)
+         }
+   })
+
 }
 const upload = () => {
       if (docuSkyObj == undefined) return
@@ -154,112 +170,71 @@ const upload = () => {
 
 }
 const downloadSelected = () => {
-      if (Object.keys(selectedDocList).length == 0) return
-      console.log(selectedDocList)
+      if (documents.length == 0) return
+      for (let i in documents) { if (i === undefined) return }
+      console.log(documents)
       const db = docuSkyObj.db
       const corpus = docuSkyObj.corpus
-      const spotlights = docuSkyObj.spotlights
-      const featureAnalysisSettings = docuSkyObj.featureAnalysisSettings
       const exporter = new DocuSkyExporter()
-      const xmlString = exporter.generateDocuXml({selectedDocList, db, corpus, spotlights, featureAnalysisSettings})
+      const xmlString = exporter.generateDocuXml({documents, db, corpus})
       const blob = new Blob([xmlString])
       //const dateStr = (new Date()).yyyymmdd()
       const filename =  db + '-' + corpus + '.xml'
       saveAs(blob, filename)
 }
 const downloadTotal = (e) => {
-         if ( docuSkyObj.totalFound == undefined || docuSkyObj.totalFound == 0 ) return
+         if (docuSkyObj.docList.length == 0) return
+         const downloadObj = docuskyGetDbCorpusDocumentsSimpleUI;
          const db = docuSkyObj.db
          const corpus = docuSkyObj.corpus
-         const spotlights = docuSkyObj.spotlights
-         const featureAnalysisSettings = docuSkyObj.featureAnalysisSettings
-         const page = docuSkyObj.page
-         const pageSize = docuSkyObj.pageSize
          const param = { target: 'USER',
                        db,
                        corpus,
                        page: 1,
                        pageSize: docuSkyObj.totalFound };
-         docuSkyObj.getQueryResultDocuments(param, e, () => {
-            const selectedDocList = {}
-            for (let i in docuSkyObj.docList) {
-            	const number = docuSkyObj.docList[i].number
-            	const docInfo = docuSkyObj.docList[i].docInfo
-              selectedDocList[number] = docInfo
-            }
+         downloadObj.hideLoadingIcon(false);
+         downloadObj.getQueryResultDocuments(param, e, () => {
             const exporter = new DocuSkyExporter()
-            const xmlString = exporter.generateDocuXml({selectedDocList, db, corpus, spotlights, featureAnalysisSettings})
+            const documents = {}
+            for (let i in downloadObj.docList) {
+               documents[downloadObj.docList[i].number] = downloadObj.docList[i].docInfo
+            }
+            const xmlString = exporter.generateDocuXml({documents, db, corpus})
             const blob = new Blob([xmlString])
             const filename = `${db}-${corpus}.xml`
             saveAs(blob, filename)
-            docuSkyObj.page = page
-            docuSkyObj.pageSize = pageSize
          });
 }
-const addDocument = (index) => { // index 是頁面的索引，從 0 開始
-      const number = docuSkyObj.docList[index].number // number 對應的是每個 docList element 中的 number attribute 
-      const docInfo = docuSkyObj.docList[index].docInfo
-      selectedDocList[number] = docInfo
-      $('#divContent > table > tbody > tr > td > b')[index].style['backgroundColor'] = 'yellow'  // highlight
+const addDocument = (index) => {
+      const document = docuSkyObj.docList[index].docInfo
+      const number = docuSkyObj.docList[index].number
+      documents[number] = document
+      docIndices[index] = index
+      $('tr b')[index+1].style['backgroundColor'] = 'yellow'  // highlight
       updateList()
-}
-const addRangeDocument = (e) => {
-     const start = parseInt($('#startIndex').val())
-     const end = parseInt($('#endIndex').val())
-     const totalFound = docuSkyObj.totalFound
-     try {
-           if (start > end) throw '起始編號需大於結尾編號'
-           else if ( end > totalFound) throw '結尾編號錯誤'
-           else if (start < 0 || end < 0) throw '編號須大於 0'
-       	   const page = docuSkyObj.page;
-       	   const pageSize = docuSkyObj.pageSize
-           docuSkyObj.getDbCorpusDocumentsGivenPageAndSize(docuSkyObj.target, docuSkyObj.db, docuSkyObj.corpus, 1, end, e, () => {
-               for (let number = start; number <= end; number++) {
-               	  index = number - 1
-			      selectedDocList[number] = docuSkyObj.docList[index].docInfo
-			      index = index - (page - 1) * pageSize
-			      try {
-			          $('#divContent > table > tbody > tr > td > b')[index].style['backgroundColor'] = 'yellow'  // highlight
-			      } catch {
-			      	console.log('Index not in the page.')
-			      }
-			      updateList()
-               }
-               docuSkyObj.page = page
-           	   docuSkyObj.pageSize = pageSize
-           	   console.log(docuSkyObj)
-           });
-     } catch(err) {
-           alert(err)
-     }
 }
 const removeDocument = (index) => {
       const number = docuSkyObj.docList[index].number
-      delete selectedDocList[number]
-      $('#divContent > table > tbody > tr > td > b')[index].style['backgroundColor'] = 'white'
+      delete documents[number]
+      delete docIndices[index]
+      $('tr b')[index+1].style['backgroundColor'] = 'white'
       updateList()
 }
 const removeAllDocument = () => {
-      for(let number of Object.keys(selectedDocList))
-      		try {
-      			const page = docuSkyObj.page
-      			const pageSize = docuSkyObj.pageSize
-      			const index = (number - 1) - (page - 1) * pageSize
-            	$('#divContent > table > tbody > tr > td > b')[index].style['backgroundColor'] = 'white'
-      		} catch {
-      			console.log('Index not in the page.')
-      		}
-      selectedDocList = {}
+      for(let index in docIndices)
+            $('tr b')[index].style['backgroundColor'] = 'white'
+      documents = {}
+      docIndices = {}
       updateList()
 }
 const updateList = () => {
       let html = '<ul>'
-      for (let key in selectedDocList) {
+      for (let key in documents) {
             html += "<li>Document #" + key + "</li>"
       }
       html += '</ul>'
       $('#listBox').html(html)
-      $('#selectedDocListLength').html(Object.keys(selectedDocList).length)
+      $('#docLength').html(Object.keys(docIndices).length)
 }
 const openListBox = () => {
       $('#listBox').css('display', 'inline')
@@ -288,6 +263,7 @@ function displayDocList() {
 
    //alert("Docs: " + docuSkyObj.docList.length);
    console.log(docuSkyObj)
+   initialize()
    var totalFound = docuSkyObj.totalFound;
    var page = docuSkyObj.page;                    // current page
    var pageSize = docuSkyObj.pageSize;
@@ -341,18 +317,6 @@ function displayDocList() {
       var page = docuSkyObj.page + 1;
       docuSkyObj.getDbCorpusDocumentsGivenPageAndSize(docuSkyObj.target, docuSkyObj.db, docuSkyObj.corpus, page, docuSkyObj.pageSize, e, window.displayDocList);
    });
-
-  for(let number of  Object.keys(selectedDocList)) {
-   	 try {
-   	 	const page = docuSkyObj.page
-   	 	const pageSize = docuSkyObj.pageSize
-   	 	const index = (number - 1) - (page - 1) * pageSize
-	 	$('#divContent > table > tbody > tr > td > b')[index].style['backgroundColor'] = 'yellow'
-   	 }
-	 catch {
-	 	console.log('Index not in the page.')
-	 }
-   }
 }
 
    // 2017-07-18
@@ -402,8 +366,8 @@ var setDocuSkyRef = function() {
                        query: '.all',
                        page: _page,
                        pageSize: _pageSize };
-         docuSkyObj.hideLoadingIcon(false);
-         docuSkyObj.getQueryResultDocuments(param, e, initialize);
+         docuSkyObj.hideLoadingIcon(true);
+         docuSkyObj.getQueryResultDocuments(param, e, displayDocList);
       });
       clearInterval(setDocuSkyRef);
    }
