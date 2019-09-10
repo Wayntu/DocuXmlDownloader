@@ -173,7 +173,11 @@ DocuSkyExporter.prototype.parseUserDefinedTag = function( xmlDoc ) {
                   node.innerHTML = this.parseUserDefinedTag( node )
                   xmlString += node.outerHTML
             } else {
-                  node.innerHTML = this.parseUserDefinedTag( node )
+                  try {
+                        node.innerHTML = this.parseUserDefinedTag( node )
+                  } catch (e) {
+                        console.log( 'Invalid XML: ' + e.message )
+                  }
                   xmlString += node.outerHTML
             }
       }

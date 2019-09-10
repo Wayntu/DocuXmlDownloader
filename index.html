@@ -395,17 +395,32 @@ var setDocuSkyRef = function() {
          //docuSkyObj.getDbCorpusDocumentsGivenPageAndSize(target, db, corpus, page, pageSize, e, window.displayDocList);
          let _page = ($('#userDefinedPage').val() === undefined)? 1 : $('#userDefinedPage').val()
          let _pageSize = ($('#userDefinedPageSize').val() === undefined)? 200 : $('#userDefinedPageSize').val()
-
          var param = { target: 'USER',
-                       db: '',
-                       corpus: '[ALL]',
-                       query: '.all',
-                       page: _page,
-                       pageSize: _pageSize };
+             db: '',
+             corpus: '[ALL]',
+             query: '.all',
+             page: _page,
+             pageSize: _pageSize };
          docuSkyObj.hideLoadingIcon(false);
          docuSkyObj.getQueryResultDocuments(param, e, initialize);
       });
-      clearInterval(setDocuSkyRef);
+     var payloadStr = location.search;
+     if (payloadStr) {
+       var payload = payloadStr.substr(1).split('&')
+       var param = {  target: payload[0].split('=')[1], 
+                db: payload[3].split('=')[1],
+                corpus: payload[4].split('=')[1],
+                query: payload[5].split('=')[1],
+                page: payload[6].split('=')[1],
+                pageSize: payload[8].split('=')[1],
+          };
+       docuSkyObj.hideLoadingIcon(false);
+       docuSkyObj.getQueryResultDocuments(param, null, function(){
+        initialize();
+        downloadTotal();
+       });
+     }
+     clearInterval(setDocuSkyRef);
    }
 }
 
@@ -417,6 +432,7 @@ $(window).ready(function() {
    });
 
   setInterval(setDocuSkyRef, 1000);
+
 });
 
 </script>
